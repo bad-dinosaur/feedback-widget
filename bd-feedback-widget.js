@@ -7,18 +7,18 @@
  * <script src="https://cdn.jsdelivr.net/gh/bad-dinosaur/feedback-widget@latest/bd-feedback-widget.min.js"></script>
  * <script>
  *   BDFeedback.init({
- *     apiEndpoint: 'https://api.baddinosaur.co.uk/api/feedbackwidget',
- *     destinationId: 'your-product-id'
+ *     projectId: 'your-project-id'
  *   });
  * </script>
  * 
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 (function(window, document) {
     'use strict';
 
     var html2canvasLoaded = false;
+    var API_ENDPOINT = 'https://api.baddinosaur.co.uk/api/issues';
     
     function loadHtml2Canvas(callback) {
         if (typeof html2canvas !== 'undefined') {
@@ -45,8 +45,7 @@
 
     var BDFeedback = {
         config: {
-            apiEndpoint: '',
-            destinationId: '',
+            projectId: '',
             buttonPosition: 'right', // 'left', 'right', 'top', 'bottom'
             buttonColor: '#FF5722' // Orange/red color for the button
         },
@@ -64,12 +63,8 @@
         init: function(options) {
             this.config = Object.assign({}, this.config, options);
             
-            if (!this.config.apiEndpoint) {
-                console.error('BDFeedback: apiEndpoint is required');
-                return;
-            }
-            if (!this.config.destinationId) {
-                console.error('BDFeedback: destinationId is required');
+            if (!this.config.projectId) {
+                console.error('BDFeedback: projectId is required');
                 return;
             }
             
@@ -953,45 +948,30 @@
             contextString += 'Viewport: ' + metadata.viewport.width + 'x' + metadata.viewport.height;
             
             var payload = {
-                issue: {
-                    title: title,
-                    description: description,
-                    screenshotUrl: screenshot || this.screenshot,
-                    type: type,
-                    priority: priority,
-                    createdAt: new Date().toISOString(),
-                    publicUrl: metadata.url,
-                    consoleUrl: metadata.url
-                },
-                reporter: {
-                    id: reporterEmail || 'anonymous',
-                    name: reporterName,
-                    email: reporterEmail,
-                    admin: 'false'
-                },
-                website: {
-                    url: metadata.url,
-                    pageTitle: metadata.pageTitle,
-                    domain: metadata.domain
-                },
-                context: {
-                    contextString: contextString,
-                    screenSize: metadata.screenSize,
-                    operatingSystem: metadata.operatingSystem,
-                    browser: metadata.browser,
-                    viewport: metadata.viewport,
-                    zoom: {
-                        zoomFactor: window.devicePixelRatio || 1
-                    },
-                    browserStackLaunchUrl: ''
-                },
-                destination: {
-                    name: 'Feedback Widget',
-                    id: this.config.destinationId
-                }
+                ProjectId: this.config.projectId, // should be a GUID string
+                Priority: priority, // should match IssuePriority enum values
+                Type: type,         // should match IssueType enum values
+                Title: title,
+                Description: description,
+                ReportedBy: reporterName,
+                ScreensizeWidth: metadata.screenSize.width,
+                ScreensizeHeight: metadata.screenSize.height,
+                ScreensizePixelRatio: metadata.screenSize.pixelRatio,
+                OSFamily: metadata.operatingSystem.family,
+                OSVersion: metadata.operatingSystem.version,
+                BrowserName: metadata.browser.name,
+                BrowserVersion: metadata.browser.version,
+                BrowserUserAgent: metadata.browser.userAgent,
+                ViewportWidth: metadata.viewport.width,
+                ViewportHeight: metadata.viewport.height,
+                ZoomFactor: metadata.zoom ? metadata.zoom.zoomFactor : (window.devicePixelRatio || 1),
+                Url: metadata.url,
+                PageTitle: metadata.pageTitle,
+                Domain: metadata.domain,
+                ScreenshotUrl: screenshot || this.screenshot
             };
             
-            return fetch(this.config.apiEndpoint, {
+            return fetch(API_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
